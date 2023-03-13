@@ -107,48 +107,47 @@ exports.getResourceRequests = expressAsyncHandler(async (req, res) => {
 
 //get detailed view
 exports.getDetailedView = expressAsyncHandler(async (req, res) => {
-  let details = await Projects.findAll({
+  //get the project details of given project if exist along with related project updates, concerns and team composition
+  let projectDetails = await Projects.findOne({
     where: {
       project_id: req.params.project_id,
     },
-    attributes: ["fitness", "project_id"],
     include: [
-      {
-        model: ProjectConcerns,
-        attributes: ["status"],
-      },
-      {
-        model: TeamMembers,
-        attributes: ["billing_status"],
-      },
+      { model: TeamMembers, attributes: { exclude: ["project_id"] } },
+      { model: ProjectConcerns, attributes: { exclude: ["project_id"] } },
+      { model: ProjectUpdates, attributes: { exclude: ["project_id"] } },
     ],
   });
-  if (details.length) {
-    // count project concers whos status is raised
+  // if project exists
+  if (projectDetails) {
+    //convert the projectDetails sequelize object to normal object
+    projectDetails = projectDetails.toJSON();
+
+    //calculate number concerns in raised state
     let concerns_count = 0;
-    details[0].project_concerns.forEach((concern) => {
-      if (concern.status.toLowerCase() == "raised") {
+    projectDetails.project_concerns.forEach((concern) => {
+      if (concern.status.toLowerCase() === "raised") {
         concerns_count++;
       }
     });
-
-    // similarly count team members whose billing status is billed
-    let billed_members_count = 0;
-    details[0].team_members.forEach((member) => {
-      if (member.billing_status.toLowerCase() == "billed") {
-        billed_members_count++;
+    //calculate billed team count
+    let team_billed_count = 0;
+    projectDetails.team_members.forEach((team_member) => {
+      if (team_member.billing_status.toLowerCase() === "billed")
+        team_billed_count++;
+    });
+    projectDetails.concerns_count = concerns_count;
+    projectDetails.team_billed_count = team_billed_count;
+    //send onlyupdates of last 2 weeks
+    // milliseconds for 2 weeks 1000*60*60*24*14=1209600000 milliseconds
+    let latestUpdates = [];
+    projectDetails.project_updates.forEach((project_update) => {
+      if (project_update.date > new Date(Date.now() - 1209600000)) {
+        latestUpdates.push(project_update);
       }
     });
-
-    //created a object to send
-    let detailed_view = {
-      project_id: details[0].project_id,
-      fitness: details[0].fitness,
-      team_count: billed_members_count,
-      concerns_count: concerns_count,
-    };
-
-    res.send({ payload: detailed_view });
+    projectDetails.project_updates = latestUpdates;
+    res.send({ message: "Project details", payload: projectDetails });
   } else {
     res.send({
       alertMsg: `No project found with project id ${req.params.project_id}`,

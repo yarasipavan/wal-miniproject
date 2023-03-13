@@ -9,6 +9,20 @@ const { Employee } = require("../models/employee.model");
 const { ProjectConcerns } = require("../models/project_concerns.model");
 const { ProjectUpdates } = require("../models/project_updates.model");
 
+//functions
+
+//function to know whether the project is under gdo head or not
+let isProjectUnderGdo = async (project_id, gdo_head_id) => {
+  let project = await Projects.findOne({
+    where: {
+      project_id: project_id,
+      gdo_head_id: gdo_head_id,
+    },
+  });
+  if (project) return project;
+  else return false;
+};
+
 //controllers
 
 //add new projects
@@ -90,14 +104,9 @@ exports.getAllConcerns = expressAsyncHandler(async (req, res) => {
 //raise resource request
 exports.raiseResourceRequest = expressAsyncHandler(async (req, res) => {
   //first check the requested project is exist under logged in GDO Head
-  let projects = await Projects.findAll({
-    where: {
-      project_id: req.body.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-  });
+
   //if exist then raise the resource request
-  if (projects.length) {
+  if (await isProjectUnderGdo(req.body.project_id, req.user.emp_id)) {
     await ResourceRequests.create(req.body);
     res
       .status(201)
@@ -113,57 +122,59 @@ exports.raiseResourceRequest = expressAsyncHandler(async (req, res) => {
 
 //detailed view  by project id
 exports.detailedView = expressAsyncHandler(async (req, res) => {
+  //check the project is under the logged in gdo or not
   //first check the requested project is exist under logged in GDO Head
-  let projects = await Projects.findAll({
-    where: {
-      project_id: req.params.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-  });
-  if (projects.length) {
-    let details = await Projects.findAll({
+  if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
+    //get the project details of given project along with related project updates, concerns and team composition
+    let projectDetails = await Projects.findOne({
       where: {
         project_id: req.params.project_id,
       },
-      attributes: ["fitness", "project_id"],
       include: [
-        {
-          model: ProjectConcerns,
-          attributes: ["status"],
-        },
-        {
-          model: TeamMembers,
-          attributes: ["billing_status"],
-        },
+        { model: TeamMembers, attributes: { exclude: ["project_id"] } },
+        { model: ProjectConcerns, attributes: { exclude: ["project_id"] } },
+        { model: ProjectUpdates, attributes: { exclude: ["project_id"] } },
       ],
     });
 
-    // count project concers whos status is raised
+    //convert the projectDetails sequelize object to normal object
+    projectDetails = projectDetails.toJSON();
+
+    //calculate number concerns in raised state
     let concerns_count = 0;
-    details[0].project_concerns.forEach((concern) => {
-      if (concern.status.toLowerCase() == "raised") {
+    projectDetails.project_concerns.forEach((concern) => {
+      if (concern.status.toLowerCase() === "raised") {
         concerns_count++;
       }
     });
+    //calculate billed team count
+    let team_billed_count = 0;
+    projectDetails.team_members.forEach((team_member) => {
+      if (team_member.billing_status.toLowerCase() === "billed")
+        team_billed_count++;
+    });
 
-    // similarly count team members whose billing status is billed
-    let billed_members_count = 0;
-    details[0].team_members.forEach((member) => {
-      if (member.billing_status.toLowerCase() == "billed") {
-        billed_members_count++;
+    //set concerns_count & team_biilled_count to projectDetails
+    projectDetails.concerns_count = concerns_count;
+    projectDetails.team_billed_count = team_billed_count;
+    //send onlyupdates of last 2 weeks
+    // milliseconds for 2 weeks 1000*60*60*24*14=1209600000 milliseconds
+    let latestUpdates = [];
+    projectDetails.project_updates.forEach((project_update) => {
+      if (project_update.date > new Date(Date.now() - 1209600000)) {
+        latestUpdates.push(project_update);
       }
     });
-    let detailed_view = {
-      project_id: details[0].project_id,
-      fitness: details[0].fitness,
-      team_count: billed_members_count,
-      concerns_count: concerns_count,
-    };
 
-    res.send({ payload: detailed_view });
-  } else {
+    // set latestUpdates to projectDetails
+    projectDetails.project_updates = latestUpdates;
+
+    res.send({ message: "Project details", payload: projectDetails });
+  }
+  //project doest not exist uder loggedin User
+  else {
     res.status(404).send({
-      alertMsg: `No project found under you with project id: ${req.params.project_id} to get the detailed view `,
+      alertMsg: `No project found uder tou with project id ${req.params.project_id}`,
     });
   }
 });
@@ -171,15 +182,8 @@ exports.detailedView = expressAsyncHandler(async (req, res) => {
 //get project by project Id
 exports.getProject = expressAsyncHandler(async (req, res) => {
   //check the whether the requested project is under Loggedin GDO head
-  let project = await Projects.findOne({
-    where: {
-      project_id: req.params.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-    attributes: { exclude: ["gdo_head_id"] },
-  });
-
   //if exist send the project details
+  let project = await isProjectUnderGdo(req.params.project_id, req.user.emp_id);
   if (project) {
     //add team size to project object
     //get team size
@@ -204,14 +208,8 @@ exports.getProject = expressAsyncHandler(async (req, res) => {
 //get the team composition
 exports.getTeam = expressAsyncHandler(async (req, res) => {
   //check the requesting project team is under loggedin GDO head or not
-  let projects = await Projects.findAll({
-    where: {
-      project_id: req.params.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-  });
   // if exist then send the team details
-  if (projects.length) {
+  if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     // find the team members
     let team = await TeamMembers.findAll({
       where: { project_id: req.params.project_id },
@@ -226,7 +224,7 @@ exports.getTeam = expressAsyncHandler(async (req, res) => {
   // else send not found message
   else {
     res.status(404).send({
-      alertMsg: `No project is found under you with product id as ${req.params.project_id} to get the team composition`,
+      alertMsg: `No project is found under you with project id as ${req.params.project_id} to get the team composition`,
     });
   }
 });
@@ -234,15 +232,10 @@ exports.getTeam = expressAsyncHandler(async (req, res) => {
 //get the projects updates
 exports.getProjectUpdates = expressAsyncHandler(async (req, res) => {
   //check is the project is under GDO head or not
-  let projects = await Projects.findAll({
-    where: {
-      project_id: req.params.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-  });
+
   // if exist then send the project updates
-  if (projects.length) {
-    //last two weeks projects new Date(Date.now()-)
+  if ((req.params.project_id, req.user.emp_id)) {
+    //last two weeks projects i.e date > new Date(Date.now()-1209600000)
     let updates = await ProjectUpdates.findAll({
       where: {
         project_id: req.params.project_id,
@@ -259,21 +252,21 @@ exports.getProjectUpdates = expressAsyncHandler(async (req, res) => {
   //esle send not found
   else {
     res.status(404).send({
-      alertMsg: `No project is found under you with product id as ${req.params.project_id} to get the project updates`,
+      alertMsg: `No project is found under you with project id as ${req.params.project_id} to get the project updates`,
     });
   }
 });
 
 //get project concerns
 exports.getConcerns = expressAsyncHandler(async (req, res) => {
-  let projects = await Projects.findAll({
+  let project = await Projects.findOne({
     where: {
       project_id: req.params.project_id,
       gdo_head_id: req.user.emp_id,
     },
   });
   // if exist then send the project concerns
-  if (projects.length) {
+  if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     let concerns = await ProjectConcerns.findAll({
       where: {
         project_id: req.params.project_id,
@@ -293,7 +286,7 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
     }
   } else {
     res.status(404).send({
-      alertMsg: `No project is found under you with product id as ${req.params.project_id} to get the project concerns`,
+      alertMsg: `No project is found under you with project id as ${req.params.project_id} to get the project concerns`,
     });
   }
 });
@@ -301,25 +294,16 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
 //add the team
 exports.addTeam = expressAsyncHandler(async (req, res) => {
   //check whether logged in user is GDO Head for team assigning project.. i.e the assigning project is under logged in user
-
-  let projects = await Projects.findAll({
-    where: {
-      project_id: req.params.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-  });
-
   //if yes add team
-  if (projects.length) {
+  if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     //add the team mebers
-
     let team = await TeamMembers.bulkCreate(req.body.team_members);
-    res.send({ message: "Team added successfully" });
+    res.send({ message: "Team added successfully", payload: team });
   }
   //else send not found project under you
   else {
     res.status(404).send({
-      alertMsg: `No product found under you with project id ${req.body.project_id} to add the team members`,
+      alertMsg: `No project found under you with project id ${req.params.project_id} to add the team members`,
     });
   }
 });
@@ -328,15 +312,8 @@ exports.addTeam = expressAsyncHandler(async (req, res) => {
 exports.updateTeamMemberDetails = expressAsyncHandler(async (req, res) => {
   //check project is uder GDO head
   //check whether logged in user is GDO Head for team assigning project.. i.e the assigning project is under logged in user
-
-  let project = await Projects.findOne({
-    where: {
-      project_id: req.params.project_id,
-      gdo_head_id: req.user.emp_id,
-    },
-  });
   //if yes check the team member is in project or not
-  if (project) {
+  if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     let member = await TeamMembers.findOne({
       where: {
         project_id: req.body.project_id,
@@ -344,7 +321,7 @@ exports.updateTeamMemberDetails = expressAsyncHandler(async (req, res) => {
       },
     });
 
-    // member exist update details
+    //if member exist update details
     if (member) {
       await TeamMembers.update(req.body, {
         where: {
@@ -360,7 +337,7 @@ exports.updateTeamMemberDetails = expressAsyncHandler(async (req, res) => {
     }
   } else {
     res.status(404).send({
-      alertMsg: `No product found under you with project id ${req.body.project_id} to delete the team member `,
+      alertMsg: `No project found under you with project id ${req.body.project_id} to delete the team member `,
     });
   }
 });
@@ -376,7 +353,7 @@ exports.deleteTeamMember = expressAsyncHandler(async (req, res) => {
     },
   });
   //if yes check the team member is in project or not
-  if (project) {
+  if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     let member = await TeamMembers.findOne({
       where: {
         project_id: req.params.project_id,
@@ -403,7 +380,7 @@ exports.deleteTeamMember = expressAsyncHandler(async (req, res) => {
     }
   } else {
     res.status(404).send({
-      alertMsg: `No product found under you with project id ${req.params.project_id} to update the team member details`,
+      alertMsg: `No project found under you with project id ${req.params.project_id} to update the team member details`,
     });
   }
 });
