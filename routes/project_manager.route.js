@@ -18,6 +18,7 @@ let {
   getDetailedView,
   getUpdates,
   getConcerns,
+  updateProjectUpdate,
 } = require("../controllers/project_manager.controller");
 
 //routes
@@ -33,6 +34,13 @@ router.post(
   "/project-update/project_id/:project_id",
   verifyProjectManager,
   projectUpdate
+);
+
+//update porject update
+router.put(
+  "/project-update/project_id/:project_id/update_id/:id",
+  verifyProjectManager,
+  updateProjectUpdate
 );
 
 //rasie project concern
