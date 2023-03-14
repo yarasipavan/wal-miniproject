@@ -325,3 +325,27 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
     });
   }
 });
+
+//update project update by project id and update id
+exports.updateProjectUpdate = expressAsyncHandler(async (req, res) => {
+  let project_id = req.body.project_id;
+  let update_id = req.body.id;
+  //check whether the project is under logged in user
+  //project exist under logged in user
+  if (await checkProjectIsUnder(project_id, req.user.emp_id)) {
+    //update the project update
+    let updates = await ProjectUpdates.update(req.body, {
+      where: { id: update_id },
+    });
+    // if updates contains non zero
+    if (updates[0]) {
+      res.send({ message: "updated successfully" });
+    } else {
+      res.send({ message: "No updates done" });
+    }
+  } else {
+    res.status(404).send({
+      alertMsg: `No project is found under you with product id as ${req.params.project_id}`,
+    });
+  }
+});
