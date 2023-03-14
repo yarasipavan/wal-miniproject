@@ -246,7 +246,7 @@ exports.getProjectUpdates = expressAsyncHandler(async (req, res) => {
     if (updates.length) {
       res.send({ message: "All last two weeks updates", payload: updates });
     } else {
-      res.send({ alertMsg: "No project updates found" });
+      res.status(404).send({ alertMsg: "No project updates found" });
     }
   }
   //esle send not found
@@ -282,7 +282,9 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
     }
     // if no cercerns send same
     else {
-      res.send({ alertMsg: "No Concerns raised in this project till now" });
+      res
+        .status(404)
+        .send({ alertMsg: "No Concerns raised in this project till now" });
     }
   } else {
     res.status(404).send({
@@ -298,7 +300,7 @@ exports.addTeam = expressAsyncHandler(async (req, res) => {
   if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     //add the team mebers
     let team = await TeamMembers.bulkCreate(req.body.team_members);
-    res.send({ message: "Team added successfully", payload: team });
+    res.status(201).send({ message: "Team added successfully", payload: team });
   }
   //else send not found project under you
   else {
