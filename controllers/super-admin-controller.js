@@ -59,9 +59,10 @@ exports.updateUser = expressAsyncHandler(async (req, res) => {
   }
 });
 
+//get users
 exports.getUsers = expressAsyncHandler(async (req, res) => {
   let users = await User.findAll({
-    attributes: { exclude: ["reset_token", "reset_token_expires"] },
+    attributes: { exclude: ["reset_token", "reset_token_expires", "password"] },
   });
   res.send({ message: "All users", payload: users });
 });

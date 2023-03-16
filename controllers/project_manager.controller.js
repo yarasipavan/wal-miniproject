@@ -75,7 +75,7 @@ exports.raiseConcern = expressAsyncHandler(async (req, res) => {
   else {
     await ProjectConcerns.create(req.body);
 
-    let concern = req.body;
+    // let concern = req.body;
     //trigger mail to gdo head and admin users
     let to_mails = await getMails(req.body.project_id);
     //trigger mail logic
