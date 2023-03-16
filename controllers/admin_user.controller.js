@@ -68,7 +68,7 @@ exports.getAllConcerns = expressAsyncHandler(async (req, res) => {
 //add new project
 exports.addProject = expressAsyncHandler(async (req, res) => {
   await Projects.create(req.body);
-  res.send({ message: "Project Added Successfully" });
+  res.status(201).send({ message: "Project Added Successfully" });
 });
 
 //update project details
@@ -81,7 +81,7 @@ exports.updateProjectDetails = expressAsyncHandler(async (req, res) => {
   }
   //if project doest not exist
   else {
-    res.send({
+    res.status(404).send({
       alertMsg: `No project found with project id ${req.body.project_id}`,
     });
   }
@@ -150,7 +150,7 @@ exports.getDetailedView = expressAsyncHandler(async (req, res) => {
     projectDetails.project_updates = latestUpdates;
     res.send({ message: "Project details", payload: projectDetails });
   } else {
-    res.send({
+    res.status(404).send({
       alertMsg: `No project found with project id ${req.params.project_id}`,
     });
   }
@@ -172,9 +172,9 @@ exports.getProject = expressAsyncHandler(async (req, res) => {
     project = project.toJSON();
     project.team_size = team.length;
 
-    res.send({ message: "hi", payload: project });
+    res.send({ message: "Project Details", payload: project });
   } else {
-    res.send({
+    res.status(404).send({
       alertMsg: `No project found with project id ${req.params.project_id}`,
     });
   }
@@ -244,7 +244,9 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
     }
     // if no cercerns send same
     else {
-      res.send({ alertMsg: "No Concerns raised in this project till now" });
+      res
+        .status(404)
+        .send({ alertMsg: "No Concerns raised in this project till now" });
     }
   }
   // else send not found

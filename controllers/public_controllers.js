@@ -96,12 +96,12 @@ exports.login = expressAsyncHandler(async (req, res) => {
     }
     //if password is incorrect
     else {
-      res.send({ alertMsg: "Invalid password" });
+      res.status(404).send({ alertMsg: "Invalid password" });
     }
   }
   //if email not existed
   else {
-    res.status(200).send({ alertMsg: "Invalid Email" });
+    res.status(404).send({ alertMsg: "Invalid Email" });
   }
 });
 
@@ -152,10 +152,10 @@ exports.resetPassword = expressAsyncHandler(async (req, res) => {
   //get the token and new password
   //if token valid update user password
   let { token, password } = req.body;
-  console.log(password);
+
   jwt.verify(token, process.env.TOKEN_SECRET_KEY, async (err, decoded) => {
     if (err) {
-      res.send({ alertMsg: "Invalid link or link expired" });
+      res.status(502).send({ alertMsg: "Invalid link or link expired" });
     } else {
       //hash the password
       let hashedpwd = await bcryptjs.hash(password, 5);

@@ -75,7 +75,7 @@ exports.raiseConcern = expressAsyncHandler(async (req, res) => {
   else {
     await ProjectConcerns.create(req.body);
 
-    let concern = req.body;
+    // let concern = req.body;
     //trigger mail to gdo head and admin users
     let to_mails = await getMails(req.body.project_id);
     //trigger mail logic
@@ -237,7 +237,7 @@ exports.getProject = expressAsyncHandler(async (req, res) => {
   }
   // if project details not found send the same to client
   else {
-    res.send({
+    res.status(404).send({
       alertMsg: `No project found under you with project id: ${req.params.project_id}`,
     });
   }
@@ -248,7 +248,7 @@ exports.getTeam = expressAsyncHandler(async (req, res) => {
   //first check the project id is under the logged in maanger or not
   // if no project found
   if (!(await checkProjectIsUnder(req.params.project_id, req.user.emp_id))) {
-    res.send({
+    res.status(404).send({
       message: `No project found under you with project id :${req.params.project_id} to get the team`,
     });
   } else {
@@ -286,7 +286,7 @@ exports.getUpdates = expressAsyncHandler(async (req, res) => {
     if (updates.length) {
       res.send({ message: "All last two weeks updates", payload: updates });
     } else {
-      res.send({ alertMsg: "No project updates found" });
+      res.status(404).send({ alertMsg: "No project updates found" });
     }
   }
   //esle send not found
@@ -317,7 +317,9 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
     }
     // if no cercerns send same
     else {
-      res.send({ alertMsg: "No Concerns raised in this project till now" });
+      res
+        .status(404)
+        .send({ alertMsg: "No Concerns raised in this project till now" });
     }
   } else {
     res.status(404).send({
