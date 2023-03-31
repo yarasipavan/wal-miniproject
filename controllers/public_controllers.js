@@ -96,12 +96,12 @@ exports.login = expressAsyncHandler(async (req, res) => {
     }
     //if password is incorrect
     else {
-      res.status(404).send({ alertMsg: "Invalid password" });
+      res.status(200).send({ alertMsg: "Invalid password" });
     }
   }
   //if email not existed
   else {
-    res.status(404).send({ alertMsg: "Invalid Email" });
+    res.status(200).send({ alertMsg: "Invalid Email" });
   }
 });
 
@@ -122,7 +122,7 @@ exports.forgotPasswordLink = expressAsyncHandler(async (req, res) => {
 
     await user.save();
     //send mail
-    const resetLink = `${process.env.CLIENT_URL}/forgot-password/${user.reset_token}`;
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${user.reset_token}`;
     const mailOptions = {
       from: "process.env.from_mail",
       to: req.body.email,
@@ -135,13 +135,15 @@ exports.forgotPasswordLink = expressAsyncHandler(async (req, res) => {
         res.status(500).send("Error sending reset email");
       } else {
         console.log(`Email sent: ${info.response}`);
-        res
-          .status(200)
-          .send({ message: "Reset email sent", token: user.reset_token });
+        res.status(200).send({
+          message:
+            "Reset link is sent to your mail. The Link will expires in 10 mins",
+          token: user.reset_token,
+        });
       }
     });
   } else {
-    res.status(404).send({
+    res.status(200).send({
       alertMsg: "This Email is not registered to this portal",
     });
   }
@@ -155,7 +157,7 @@ exports.resetPassword = expressAsyncHandler(async (req, res) => {
 
   jwt.verify(token, process.env.TOKEN_SECRET_KEY, async (err, decoded) => {
     if (err) {
-      res.status(502).send({ alertMsg: "Invalid link or link expired" });
+      res.status(200).send({ alertMsg: "Invalid link or link expired" });
     } else {
       //hash the password
       let hashedpwd = await bcryptjs.hash(password, 5);

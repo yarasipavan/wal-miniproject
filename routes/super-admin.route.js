@@ -13,6 +13,7 @@ let {
   deleteUser,
   updateUser,
   getUsers,
+  getActiveUsers,
 } = require("../controllers/super-admin-controller");
 const { route } = require("./public_routes");
 
@@ -26,7 +27,13 @@ router.put("/employee/:emp_id", verifySuperAdmin, updateUser);
 
 //delete user
 router.delete("/employee/:emp_id", verifySuperAdmin, deleteUser);
-router.get("/users", getUsers);
+
+//get all users
+router.get("/users", verifySuperAdmin, getUsers);
+
+//get Active users
+
+router.get("/active-users", verifySuperAdmin, getActiveUsers);
 
 //export router
 module.exports = router;

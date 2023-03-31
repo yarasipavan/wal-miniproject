@@ -118,8 +118,9 @@ exports.getProjects = expressAsyncHandler(async (req, res) => {
   let projects = await Projects.findAll({
     where: { project_manager_id: req.user.emp_id },
     attributes: {
-      exclude: ["domain", "type_of_project", "project_manager_id"],
+      exclude: ["domain", "type_of_project"],
     },
+    order: [["project_id", "DESC"]],
   });
   if (projects.length) {
     res.send({ message: "All projects", payload: projects });

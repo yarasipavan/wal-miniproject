@@ -19,7 +19,7 @@ let verifyToken = (req, res, next) => {
     jwt.verify(token, process.env.TOKEN_SECRET_KEY, (err, decoded) => {
       if (err) {
         res
-          .status(403)
+          .status(401)
           .send({ alertMsg: "Session Expired please login again..." });
       } else {
         console.log(decoded.status);
@@ -27,7 +27,7 @@ let verifyToken = (req, res, next) => {
           req.user = { emp_id: decoded.emp_id, email: decoded.email };
           next();
         } else {
-          res.status(403).send({ alertMsg: "You are not authorized user.." });
+          res.status(401).send({ alertMsg: "You are not authorized user.." });
         }
       }
     });

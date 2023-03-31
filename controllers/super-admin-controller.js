@@ -20,7 +20,13 @@ exports.setRoleByempId = expressAsyncHandler(async (req, res) => {
   //else set the role
   else {
     await User.update({ user_type: user_type }, { where: { emp_id: emp_id } });
-    res.send({ message: "User role Updated Successfully" });
+    //send updated users list
+    let users = await User.findAll({
+      attributes: {
+        exclude: ["reset_token", "reset_token_expires", "password"],
+      },
+    });
+    res.send({ message: "User role Updated Successfully", payload: users });
   }
 });
 
@@ -65,4 +71,15 @@ exports.getUsers = expressAsyncHandler(async (req, res) => {
     attributes: { exclude: ["reset_token", "reset_token_expires", "password"] },
   });
   res.send({ message: "All users", payload: users });
+});
+
+//get users who are active
+
+exports.getActiveUsers = expressAsyncHandler(async (req, res) => {
+  let users = await User.findAll({
+    where: { status: true, user_type: null },
+    attributes: { exclude: ["reset_token", "reset_token_expires", "password"] },
+  });
+
+  res.send({ message: "All Active users", payload: users });
 });
