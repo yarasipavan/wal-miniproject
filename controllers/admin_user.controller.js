@@ -68,8 +68,10 @@ exports.getAllConcerns = expressAsyncHandler(async (req, res) => {
 
 //add new project
 exports.addProject = expressAsyncHandler(async (req, res) => {
-  await Projects.create(req.body);
-  res.status(201).send({ message: "Project Added Successfully" });
+  let newProject = await Projects.create(req.body);
+  res
+    .status(201)
+    .send({ message: "Project Added Successfully", payload: newProject });
 });
 
 //update project details

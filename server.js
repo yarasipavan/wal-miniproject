@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+
 //configure dotenv
 require("dotenv").config();
 // import sequelize object and routers
@@ -19,9 +20,14 @@ const { TeamMembers } = require("./models/team_members.model");
 const { Employee } = require("./models/employee.model");
 const { ProjectConcerns } = require("./models/project_concerns.model");
 const { ProjectUpdates } = require("./models/project_updates.model");
+//import path
+const path = require("path");
 
 const app = express();
 app.use(helmet());
+
+//merge fontend with backend
+app.use(express.static(path.join(__dirname, "../build")));
 
 //make the express application to listen the requests
 let port = process.env.PORT || 4000;
@@ -92,6 +98,11 @@ app.use("/super-admin", superAdminRouter);
 app.use("/gdo", gdoRouter);
 app.use("/project-manager", projectManagerRouter);
 app.use("/admin-user", adminUserRouter);
+
+//page refresh handler
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "../build/index.html"));
+});
 
 //invalid path middleware
 app.use("*", (req, res, next) => {

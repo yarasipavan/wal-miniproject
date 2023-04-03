@@ -90,7 +90,12 @@ exports.getAllConcerns = expressAsyncHandler(async (req, res) => {
       where: {
         gdo_head_id: emp_id,
       },
-      attributes: ["project_name", "project_id", "project_manager_id"],
+      attributes: [
+        "project_name",
+        "project_id",
+        "gdo_head_id",
+        "project_manager_id",
+      ],
     },
     attributes: {
       exclude: ["project_id"],
