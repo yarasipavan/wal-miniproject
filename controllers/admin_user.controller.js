@@ -10,7 +10,7 @@ const { TeamMembers } = require("../models/team_members.model");
 const { Employee } = require("../models/employee.model");
 const { ProjectConcerns } = require("../models/project_concerns.model");
 const { ProjectUpdates } = require("../models/project_updates.model");
-
+const { User } = require("../models/user.model");
 // functions
 
 //check whether the project is exist in db with project id
@@ -26,12 +26,13 @@ let isProjectExist = async (project_id) => {
 exports.getAllProjects = expressAsyncHandler(async (req, res) => {
   let projects = await Projects.findAll({
     attributes: { exclude: ["domain", "type_of_project"] },
+    order: [["project_id", "DESC"]],
   });
   // if no projects send not found
   if (!projects.length) {
     res.status(404).send({ alertMsg: "No project Found" });
   } else {
-    res.send({ message: "All projects", Payload: projects });
+    res.send({ message: "All projects", payload: projects });
   }
 });
 
@@ -67,8 +68,10 @@ exports.getAllConcerns = expressAsyncHandler(async (req, res) => {
 
 //add new project
 exports.addProject = expressAsyncHandler(async (req, res) => {
-  await Projects.create(req.body);
-  res.status(201).send({ message: "Project Added Successfully" });
+  let newProject = await Projects.create(req.body);
+  res
+    .status(201)
+    .send({ message: "Project Added Successfully", payload: newProject });
 });
 
 //update project details
@@ -255,4 +258,32 @@ exports.getConcerns = expressAsyncHandler(async (req, res) => {
       alertMsg: `No project found with project id ${req.params.project_id}`,
     });
   }
+});
+
+//get project managers
+exports.getProjectManagers = expressAsyncHandler(async (req, res) => {
+  let managers = await User.findAll({
+    where: { user_type: "PROJECT-MANAGER", status: true },
+    attributes: ["emp_id", "name"],
+  });
+  res.send({ message: "All Project Managers", payload: managers });
+});
+
+//get all gdo heads
+
+exports.getAllGdos = expressAsyncHandler(async (req, res) => {
+  let gdoHeads = await User.findAll({
+    where: { user_type: "GDO-HEAD", status: true },
+    attributes: ["emp_id", "name"],
+  });
+  res.send({ message: "All Project GDO Heads", payload: gdoHeads });
+});
+
+//get active client managers
+exports.getAllEmployees = expressAsyncHandler(async (req, res) => {
+  let employees = await Employee.findAll({
+    where: {},
+    attributes: ["emp_id", "name"],
+  });
+  res.send({ message: "All Employees", payload: employees });
 });

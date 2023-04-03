@@ -20,6 +20,9 @@ let {
   getTeam,
   getUpdates,
   getConcerns,
+  getProjectManagers,
+  getAllGdos,
+  getAllEmployees,
 } = require("../controllers/admin_user.controller");
 
 //routes
@@ -73,6 +76,15 @@ router.get(
   verifyAdminUser,
   getConcerns
 );
+
+//get project managers
+router.get("/project-managers", verifyAdminUser, getProjectManagers);
+
+//get all GDO Heads
+router.get("/gdo-heads", verifyAdminUser, getAllGdos);
+
+//get all employees
+router.get("/employees", verifyAdminUser, getAllEmployees);
 
 //import router
 module.exports = router;

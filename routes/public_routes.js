@@ -16,20 +16,20 @@ let {
 //routes
 
 //register
-router.post("/register", register);
+router.post("/user-register", register);
 
 //login
-router.post("/login", login);
+router.post("/user-login", login);
 
 //send forgot password link
-router.post("/forgot-password", forgotPasswordLink);
+router.post("/user-forgot-password", forgotPasswordLink);
 
 //rest password
-router.post("/reset-password", resetPassword);
+router.post("/user-reset-password", resetPassword);
 //export Router
 module.exports = router;
-router.get("/forgot-password/:token", (req, res) => {
-  res.send(
-    "This page will available after done with front end part.... it will ask for password and resnd the password and the token from path to reset password"
-  );
-});
+// router.get("/user-forgot-password/:token", (req, res) => {
+//   res.send(
+//     "This page will available after done with front end part.... it will ask for password and resnd the password and the token from path to reset password"
+//   );
+// });

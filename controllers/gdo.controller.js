@@ -19,6 +19,7 @@ let isProjectUnderGdo = async (project_id, gdo_head_id) => {
       gdo_head_id: gdo_head_id,
     },
   });
+
   if (project) return project;
   else return false;
 };
@@ -65,7 +66,8 @@ exports.getProjects = expressAsyncHandler(async (req, res) => {
   //we have logged in user details in req by the action in verifyGdoHead,, so get the projects under logged in GDO Head
   let projects = await Projects.findAll({
     where: { gdo_head_id: req.user.emp_id },
-    attributes: { exclude: ["domain", "type_of_project", "gdo_head_id"] },
+    attributes: { exclude: ["domain", "type_of_project"] },
+    order: [["project_id", "DESC"]],
   });
   //projects exist send projects
   if (projects.length) {
@@ -88,7 +90,12 @@ exports.getAllConcerns = expressAsyncHandler(async (req, res) => {
       where: {
         gdo_head_id: emp_id,
       },
-      attributes: ["project_name", "project_id", "project_manager_id"],
+      attributes: [
+        "project_name",
+        "project_id",
+        "gdo_head_id",
+        "project_manager_id",
+      ],
     },
     attributes: {
       exclude: ["project_id"],
@@ -114,7 +121,7 @@ exports.raiseResourceRequest = expressAsyncHandler(async (req, res) => {
   }
   // else send the not found to client
   else {
-    res.status(404).send({
+    res.status(200).send({
       alertMsg: `No project found under you with project id: ${req.body.project_id} to raise the resource request `,
     });
   }
@@ -131,7 +138,7 @@ exports.detailedView = expressAsyncHandler(async (req, res) => {
         project_id: req.params.project_id,
       },
       include: [
-        { model: TeamMembers, attributes: { exclude: ["project_id"] } },
+        { model: TeamMembers },
         { model: ProjectConcerns, attributes: { exclude: ["project_id"] } },
         { model: ProjectUpdates, attributes: { exclude: ["project_id"] } },
       ],
@@ -174,7 +181,7 @@ exports.detailedView = expressAsyncHandler(async (req, res) => {
   //project doest not exist uder loggedin User
   else {
     res.status(404).send({
-      alertMsg: `No project found uder tou with project id ${req.params.project_id}`,
+      alertMsg: `No project found under you with project id ${req.params.project_id}`,
     });
   }
 });
@@ -300,7 +307,7 @@ exports.addTeam = expressAsyncHandler(async (req, res) => {
   if (await isProjectUnderGdo(req.params.project_id, req.user.emp_id)) {
     //add the team mebers
     let team = await TeamMembers.bulkCreate(req.body.team_members);
-    res.status(201).send({ message: "Team added successfully", payload: team });
+    res.status(201).send({ message: "Added successfully", payload: team });
   }
   //else send not found project under you
   else {
@@ -331,7 +338,16 @@ exports.updateTeamMemberDetails = expressAsyncHandler(async (req, res) => {
           resource_id: req.body.resource_id,
         },
       });
-      res.send({ message: "Team Member details Updated" });
+
+      //get the updated team
+      let updatedTeam = await TeamMembers.findAll({
+        where: { project_id: req.body.project_id },
+      });
+
+      res.send({
+        message: "Team Member details Updated",
+        updatedTeam: updatedTeam,
+      });
     } else {
       res.status(404).send({
         alertMsg: `No team member found with id ${req.body.resource_id} on project  ${req.body.project_id} to delete the team member `,
@@ -385,4 +401,13 @@ exports.deleteTeamMember = expressAsyncHandler(async (req, res) => {
       alertMsg: `No project found under you with project id ${req.params.project_id} to update the team member details`,
     });
   }
+});
+
+//get all employees
+exports.getAllEmployees = expressAsyncHandler(async (req, res) => {
+  let employees = await Employee.findAll({
+    where: {},
+    attributes: ["emp_id", "name"],
+  });
+  res.send({ message: "All Employees", payload: employees });
 });

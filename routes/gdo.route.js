@@ -17,6 +17,7 @@ let {
   getConcerns,
   updateTeamMemberDetails,
   deleteTeamMember,
+  getAllEmployees,
 } = require("../controllers/gdo.controller");
 //body-parser
 router.use(express.json());
@@ -37,7 +38,7 @@ router.get("/project-concerns", verifyGdoHead, getAllConcerns);
 
 //raise resource request
 router.post(
-  "/resource-request/project_id/:project_id",
+  "/resourse-request/project_id/:project_id",
   verifyGdoHead,
   raiseResourceRequest
 );
@@ -94,6 +95,9 @@ router.delete(
   verifyGdoHead,
   deleteTeamMember
 );
+
+//get all employees
+router.get("/employees", verifyGdoHead, getAllEmployees);
 
 //export router
 module.exports = router;
